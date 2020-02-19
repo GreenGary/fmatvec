@@ -25,13 +25,10 @@
 #include "linear_algebra_var.h"
 #include "linear_algebra_fixed_var.h"
 #include "linear_algebra_var_fixed.h"
-#include "linear_algebra_double.h"
+#include "linear_algebra_complex.h"
 #include "wrapper.h"
 #include <stdexcept>
 #include <sstream>
-
-#define FMATVEC_NO_INITIALIZATION
-#define FMATVEC_NO_BOUNDS_CHECK
 
 #define CVT_TRANSPOSE(c) \
    (((c) == CblasNoTrans) ? 'N' : \
@@ -49,38 +46,27 @@
     ((c) == CblasRight) ? 'R' : \
     -1)
 
-template <class T>
-std::string toStr(const T& val) {
-  std::ostringstream oss;
-  oss << val;
-  return oss.str();
-}
-
 namespace fmatvec {
 
-  Vector<Ref, std::complex<double> > slvLU(const SquareMatrix<Ref, std::complex<double> > &A, const Vector<Ref, std::complex<double> > &x) {
+  Vector<Ref, std::complex<double>> slvLU(const SquareMatrix<Ref, std::complex<double>> &A, const Vector<Ref, std::complex<double>> &x) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.size() == x.size());
-#endif
 
-    Vector<Ref, std::complex<double> > y = x.copy();
+    Vector<Ref, std::complex<double>> y = x;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (x.size() == 0)
       return y;
-#endif
 
-    SquareMatrix<Ref, std::complex<double> > B = A.copy();
+    SquareMatrix<Ref, std::complex<double>> B = A;
 
-    int *ipiv = new int[A.size()];
+    auto *ipiv = new int[A.size()];
 
     int info = zgesv(B.blasOrder(), B.size(), 1, B(), B.ldim(), ipiv, y(), y.size());
 
     delete[] ipiv;
 
     if(info != 0)
-      throw std::runtime_error("Exception in slvLU: dgesv exited with info="+toStr(info));
+      throw std::runtime_error("Exception in slvLU: dgesv exited with info="+std::to_string(info));
 
     return y;
   }

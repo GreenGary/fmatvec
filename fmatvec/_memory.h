@@ -23,8 +23,9 @@
 #define _memory_h
 
 // includes
-#include <stdlib.h>
+#include <cstdlib>
 #include <vector>
+#include <memory>
 
 // include header given by ALLOCATORHEADER
 #ifdef ALLOCATORHEADER
@@ -97,10 +98,6 @@
   #define FMATVEC_SYNCPREDEC(ret, var, l) ret=--(var);
 #endif
 
-#if defined MEMORYCLASS_BOOST
-#  include <boost/shared_array.hpp>
-#endif
-
 /**
  * \brief memory managment and reference counting 
  * \author Martin Foerg
@@ -120,7 +117,7 @@ namespace fmatvec {
       // A pool of memory of allocation size 2^(MINEXP+0), 2^(MINEXP+1), 2^(MINEXP+2), ...
       // stored at index 0, 1, 2, ... in memoryPool.
       // The pointers stored here are already allocated but currently not used.
-      std::vector<std::vector<AT*> > memoryPool;
+      std::vector<std::vector<AT*>> memoryPool;
       // Just a dummy variable used for zero size allocations.
       AT sizeZero;
       FMATVEC_LOCKVAR(fmatvec_memoryPoolLock)
@@ -132,7 +129,7 @@ namespace fmatvec {
       // Destructor: delete all cached memory in the pool.
       ~PoolAllocator() {
         // loop over all pool sizes and free memory
-        for(typename std::vector<std::vector<AT*> >::iterator i=memoryPool.begin(); i!=memoryPool.end(); ++i)
+        for(typename std::vector<std::vector<AT*>>::iterator i=memoryPool.begin(); i!=memoryPool.end(); ++i)
           for(typename std::vector<AT*>::iterator j=i->begin(); j!=i->end(); ++j)
             delete[](*j);
       }
@@ -174,84 +171,80 @@ namespace fmatvec {
       }
   };
 
-
-
-
-
 #ifdef MEMORYCLASS_FMATVEC
 
   // this is the old fmatvec Memory class which uses different allocators (using the std::allocator interface)
   template <class AT> class Memory {
-      private:
-        typedef ALLOCATORCLASS<AT> allocator_type;
-	size_t sz;
-	AT *ele0;
-        static allocator_type ms;
-	size_t *ref;
-        FMATVEC_SYNCVAR(fmatvec_refLock)
-	void lock() {
+    private:
+      typedef ALLOCATORCLASS<AT> allocator_type;
+      size_t sz;
+      AT *ele0;
+      static allocator_type ms;
+      size_t *ref;
+      FMATVEC_SYNCVAR(fmatvec_refLock)
+        void lock() {
           FMATVEC_SYNCINC(*ref, fmatvec_refLock)
-        };
-	void unlock() {
-          size_t refLocal;
-          FMATVEC_SYNCPREDEC(refLocal, *ref, fmatvec_refLock)
-	  if(!refLocal) {
+        }
+      void unlock() {
+        size_t refLocal;
+        FMATVEC_SYNCPREDEC(refLocal, *ref, fmatvec_refLock)
+          if(!refLocal) {
             ms.deallocate(ele0, sz);
-	    delete ref;
-	  }
-	};
+            delete ref;
+          }
+      }
 
-      public:
-	Memory() : sz(0), ele0(0), ref(new size_t(1)) {
-          FMATVEC_SYNCINIT(fmatvec_refLock);
-	};
+    public:
+      Memory() : sz(0), ele0(0), ref(new size_t(1)) {
+        FMATVEC_SYNCINIT(fmatvec_refLock);
+      }
 
-	Memory(size_t n) : sz(n), ele0(ms.allocate(sz)), ref(new size_t(1)){
-          FMATVEC_SYNCINIT(fmatvec_refLock);
-	};
+      Memory(size_t n) : sz(n), ele0(ms.allocate(sz)), ref(new size_t(1)){
+        FMATVEC_SYNCINIT(fmatvec_refLock);
+      }
 
-	Memory(const Memory &memory) : sz(memory.sz), ele0(memory.ele0), ref(memory.ref)  {
-          FMATVEC_SYNCINIT(fmatvec_refLock);
-	  lock();
-	};
+      Memory(const Memory &memory) : sz(memory.sz), ele0(memory.ele0), ref(memory.ref)  {
+        FMATVEC_SYNCINIT(fmatvec_refLock);
+        lock();
+      }
 
-	~Memory() {
-	  unlock();
-	}; 
+      ~Memory() {
+        unlock();
+      }
 
-	Memory& operator=(const Memory &memory) {
-	  if(this == &memory)
-	    return *this;
-	  unlock(); sz=memory.sz; ref=memory.ref; ele0=memory.ele0; lock();
-	  return *this;
-	}
+      Memory& operator=(const Memory &memory) {
+        if(this == &memory)
+          return *this;
+        unlock(); sz=memory.sz; ref=memory.ref; ele0=memory.ele0; lock();
+        return *this;
+      }
 
-	void resize(size_t n) {
-	  unlock();
-	  ref=new size_t(1);
-	  sz = n;
-	  ele0 = ms.allocate(sz);
-	};
+      void resize(size_t n) {
+        unlock();
+        ref=new size_t(1);
+        sz = n;
+        ele0 = ms.allocate(sz);
+      }
 
-	AT* get() const {return ele0;};
-    };
+      AT* get() const {return ele0;}
+  };
 
-#elif defined MEMORYCLASS_BOOST
+#elif defined MEMORYCLASS_STDSHAREDPTR
 
-  // Just a wrapper class around boost::shared_array, since the Memory interface differs a little bit from the boost smart-ptr interface
+  // Just a wrapper class around std::shared_ptr<T[]>, since the Memory interface differs a little bit from the std smart-ptr interface
   // This wrapper is fully inlined by the compiler if optimization is used!
   template <class AT> class Memory {
     private:
-      boost::shared_array<AT> ele0;
+      std::shared_ptr<AT[]> ele0;
 
     public:
-      Memory() : ele0() {};
+      Memory() : ele0() {}
 
-      Memory(size_t n) : ele0(new AT[n]) {};
+      Memory(size_t n) : ele0(new AT[n]) {}
 
-      Memory(const Memory &memory) : ele0(memory.ele0) {};
+      Memory(const Memory &memory) : ele0(memory.ele0) {}
 
-      ~Memory() {}; 
+      ~Memory() {}
 
       Memory& operator=(const Memory &memory) {
         if(this == &memory)
@@ -262,9 +255,9 @@ namespace fmatvec {
 
       void resize(size_t n) {
         ele0.reset(new AT[n]);
-      };
+      }
 
-      AT* get() const {return ele0.get();};
+      AT* get() const {return ele0.get();}
   };
 
 #else
@@ -282,7 +275,7 @@ namespace fmatvec {
 
       void lock() {
         FMATVEC_SYNCINC(*ref, fmatvec_refLock)
-      };
+      }
 
       void unlock() {
         size_t refLocal;
@@ -290,27 +283,27 @@ namespace fmatvec {
         if(!refLocal) {
           delete[]reinterpret_cast<AT*>(ref);
         }
-      };
+      }
 
     public:
-      Memory() : ref(reinterpret_cast<size_t*>(new AT[ele0Start])), ele0(NULL) {
+      Memory() : ref(reinterpret_cast<size_t*>(new AT[ele0Start])), ele0(nullptr) {
         *ref=1; // initialize the reference count to 1
         FMATVEC_SYNCINIT(fmatvec_refLock);
-      };
+      }
 
       Memory(size_t n) : ref(reinterpret_cast<size_t*>(new AT[ele0Start+n])), ele0(reinterpret_cast<AT*>(ref)+ele0Start) {
         *ref=1; // initialize the reference count to 1
         FMATVEC_SYNCINIT(fmatvec_refLock);
-      };
+      }
 
       Memory(const Memory &memory) : ref(memory.ref), ele0(memory.ele0) {
         FMATVEC_SYNCINIT(fmatvec_refLock);
         lock();
-      };
+      }
 
       ~Memory() {
         unlock();
-      }; 
+      }
 
       Memory& operator=(const Memory &memory) {
         if(this == &memory)
@@ -324,9 +317,9 @@ namespace fmatvec {
         ref=reinterpret_cast<size_t*>(new AT[ele0Start+n]);
         ele0=reinterpret_cast<AT*>(ref)+ele0Start;
         *ref=1; // initialize the reference count to 1
-	};
+	}
 
-      AT* get() const {return ele0;};
+      AT* get() const {return ele0;}
   };
 
 #endif

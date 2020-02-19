@@ -30,9 +30,6 @@
 #include <stdexcept>
 #include <sstream>
 
-#define FMATVEC_NO_INITIALIZATION
-#define FMATVEC_NO_BOUNDS_CHECK
-
 #define CVT_TRANSPOSE(c) \
    (((c) == CblasNoTrans) ? 'N' : \
     ((c) == CblasTrans) ? 'T' : \
@@ -49,13 +46,6 @@
     ((c) == CblasRight) ? 'R' : \
     -1)
 
-template <class T>
-std::string toStr(const T& val) {
-  std::ostringstream oss;
-  oss << val;
-  return oss.str();
-}
-
 //-------------------------------------
 // Matrix operations
 //-------------------------------------
@@ -67,47 +57,39 @@ namespace fmatvec {
 
   Matrix<General, Ref, Ref, double> slvLU(const SquareMatrix<Ref, double> &A, const Matrix<General, Ref, Ref, double> &X) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.size() == X.rows());
-#endif
 
-    Matrix<General, Ref, Ref, double> Y = X.copy();
+    Matrix<General, Ref, Ref, double> Y = X;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (X.rows() == 0 || X.cols() == 0)
       return Y;
-#endif
 
-    SquareMatrix<Ref, double> B = A.copy();
+    SquareMatrix<Ref, double> B = A;
 
-    int *ipiv = new int[A.size()];
+    auto *ipiv = new int[A.size()];
 
     int info = dgesv(B.blasOrder(), B.size(), Y.cols(), B(), B.ldim(), ipiv, Y(), Y.ldim());
 
     delete[] ipiv;
 
     if(info != 0)
-      throw std::runtime_error("Exception in slvLU: dgesv exited with info="+toStr(info));
+      throw std::runtime_error("Exception in slvLU: dgesv exited with info="+std::to_string(info));
 
     return Y;
   }
 
-  Matrix<General, Var, Var, double> slvLU(const SquareMatrix<Var, double> &A, const Matrix<General, Var, Var, double> &X, int info) {
+  Matrix<General, Var, Var, double> slvLU(const SquareMatrix<Var, double> &A, const Matrix<General, Var, Var, double> &X, int &info) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.size() == X.rows());
-#endif
 
     Matrix<General, Var, Var, double> Y = X;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (X.rows() == 0 || X.cols() == 0)
       return Y;
-#endif
 
     SquareMatrix<Var, double> B = A;
 
-    int *ipiv = new int[A.size()];
+    auto *ipiv = new int[A.size()];
 
     info = dgesv(B.blasOrder(), B.size(), Y.cols(), B(), B.ldim(), ipiv, Y(), Y.ldim());
 
@@ -118,18 +100,14 @@ namespace fmatvec {
 
   Matrix<General, Ref, Ref, double> slvLUFac(const SquareMatrix<Ref, double> &A, const Matrix<General, Ref, Ref, double> &X, const Vector<Ref, int> &ipiv) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.size() == X.rows());
-#endif
 
-    Matrix<General, Ref, Ref, double> Y = X.copy();
+    Matrix<General, Ref, Ref, double> Y = X;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (X.rows() == 0 || X.cols() == 0)
       return Y;
-#endif
 
-    SquareMatrix<Ref, double> B = A.copy();
+    SquareMatrix<Ref, double> B = A;
 
 #ifndef HAVE_LIBMKL_INTEL_LP64
     int info = dgetrs(B.blasOrder(), B.blasTrans(), B.size(), Y.cols(), B(), B.ldim(), ipiv(), Y(), Y.ldim());
@@ -138,23 +116,19 @@ namespace fmatvec {
 #endif
 
     if(info != 0)
-      throw std::runtime_error("Exception in slvLUFac: dgetrs exited with info="+toStr(info));
+      throw std::runtime_error("Exception in slvLUFac: dgetrs exited with info="+std::to_string(info));
 
     return Y;
   }
 
   Matrix<General, Var, Var, double> slvLUFac(const SquareMatrix<Var, double> &A, const Matrix<General, Var, Var, double> &X, const Vector<Var, int> &ipiv) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.size() == X.rows());
-#endif
 
     Matrix<General, Var, Var, double> Y = X;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (X.rows() == 0 || X.cols() == 0)
       return Y;
-#endif
 
     SquareMatrix<Var, double> B = A;
 
@@ -165,35 +139,31 @@ namespace fmatvec {
 #endif
 
     if(info != 0)
-      throw std::runtime_error("Exception in slvLUFac: dgetrs exited with info="+toStr(info));
+      throw std::runtime_error("Exception in slvLUFac: dgetrs exited with info="+std::to_string(info));
 
     return Y;
   }
 
   Matrix<General, Ref, Ref, double> slvQR(const SquareMatrix<Ref, double> &A, const Matrix<General, Ref, Ref, double> &X) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.size() == X.rows());
-#endif
 
-    Matrix<General, Ref, Ref, double> Y = X.copy();
+    Matrix<General, Ref, Ref, double> Y = X;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (X.rows() == 0 || X.cols() == 0)
       return Y;
-#endif
 
-    SquareMatrix<Ref, double> B = A.copy();
+    SquareMatrix<Ref, double> B = A;
 
     int info = dgels(B.blasTrans(), B.rows(), B.cols(), Y.cols(), B(), B.ldim(), Y(), Y.ldim());
 
     if(info != 0)
-      throw std::runtime_error("Exception in slvQR: dgels exited with info="+toStr(info));
+      throw std::runtime_error("Exception in slvQR: dgels exited with info="+std::to_string(info));
 
     return Y;
   }
 
-  int Doolittle_LU_with_Pivoting_Solve(double *A, double B[], int pivot[], double x[], int n) {
+  int Doolittle_LU_with_Pivoting_Solve(double *A, double B[], const int pivot[], double x[], int n) {
     int i, k;
     double *p_k;
     double dum;
@@ -233,47 +203,39 @@ namespace fmatvec {
 
   Vector<Ref, double> slvLU(const SquareMatrix<Ref, double> &A, const Vector<Ref, double> &x) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.size() == x.size());
-#endif
 
-    Vector<Ref, double> y = x.copy();
+    Vector<Ref, double> y = x;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (x.size() == 0)
       return y;
-#endif
 
-    SquareMatrix<Ref, double> B = A.copy();
+    SquareMatrix<Ref, double> B = A;
 
-    int *ipiv = new int[A.size()];
+    auto *ipiv = new int[A.size()];
 
     int info = dgesv(B.blasOrder(), B.size(), 1, B(), B.ldim(), ipiv, y(), y.size());
 
     delete[] ipiv;
 
     if(info != 0)
-      throw std::runtime_error("Exception in slvLU: dgesv exited with info="+toStr(info));
+      throw std::runtime_error("Exception in slvLU: dgesv exited with info="+std::to_string(info));
 
     return y;
   }
 
   Vector<Ref, double> slvLU(const SquareMatrix<Ref, double> &A, const Vector<Ref, double> &x, int & info) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.size() == x.size());
-#endif
 
-    Vector<Ref, double> y = x.copy();
+    Vector<Ref, double> y = x;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (x.size() == 0)
       return y;
-#endif
 
-    SquareMatrix<Ref, double> B = A.copy();
+    SquareMatrix<Ref, double> B = A;
 
-    int *ipiv = new int[A.size()];
+    auto *ipiv = new int[A.size()];
 
     info = dgesv(B.blasOrder(), B.size(), 1, B(), B.ldim(), ipiv, y(), y.size());
 
@@ -284,20 +246,16 @@ namespace fmatvec {
 
   Vector<Var, double> slvLU(const SquareMatrix<Var, double> &A, const Vector<Var, double> &x, int & info) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.size() == x.size());
-#endif
 
     Vector<Var, double> y = x;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (x.size() == 0)
       return y;
-#endif
 
     SquareMatrix<Var, double> B = A;
 
-    int *ipiv = new int[A.size()];
+    auto *ipiv = new int[A.size()];
 
     info = dgesv(B.blasOrder(), B.size(), 1, B(), B.ldim(), ipiv, y(), y.size());
 
@@ -308,18 +266,14 @@ namespace fmatvec {
 
   Vector<Ref, double> slvLUFac(const SquareMatrix<Ref, double> &A, const Vector<Ref, double> &x, const Vector<Ref, int> &ipiv) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.size() == x.size());
-#endif
 
-    Vector<Ref, double> y = x.copy();
+    Vector<Ref, double> y = x;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (x.size() == 0)
       return y;
-#endif
 
-    SquareMatrix<Ref, double> B = A.copy();
+    SquareMatrix<Ref, double> B = A;
 
 #ifndef HAVE_LIBMKL_INTEL_LP64
     int info = dgetrs(B.blasOrder(), B.blasTrans(), B.size(), 1, B(), B.ldim(), ipiv(), y(), y.size());
@@ -328,23 +282,19 @@ namespace fmatvec {
 #endif
 
     if(info != 0)
-      throw std::runtime_error("Exception in slvLUFac: dgetrs exited with info="+toStr(info));
+      throw std::runtime_error("Exception in slvLUFac: dgetrs exited with info="+std::to_string(info));
 
     return y;
   }
 
   Vector<Var, double> slvLUFac(const SquareMatrix<Var, double> &A, const Vector<Var, double> &x, const Vector<Var, int> &ipiv) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.size() == x.size());
-#endif
 
     Vector<Var, double> y = x;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (x.size() == 0)
       return y;
-#endif
 
     SquareMatrix<Var, double> B = A;
 
@@ -355,49 +305,43 @@ namespace fmatvec {
 #endif
 
     if(info != 0)
-      throw std::runtime_error("Exception in slvLUFac: dgetrs exited with info="+toStr(info));
+      throw std::runtime_error("Exception in slvLUFac: dgetrs exited with info="+std::to_string(info));
 
     return y;
   }
 
   Vector<Ref, double> slvQR(const SquareMatrix<Ref, double> &A, const Vector<Ref, double> &x) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.size() == x.size());
-#endif
 
-    Vector<Ref, double> y = x.copy();
+    Vector<Ref, double> y = x;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (x.size() == 0)
       return y;
-#endif
 
-    SquareMatrix<Ref, double> B = A.copy();
+    SquareMatrix<Ref, double> B = A;
 
     int info = dgels(B.blasTrans(), B.rows(), B.cols(), y.cols(), B(), B.ldim(), y(), y.size());
 
     if(info != 0)
-      throw std::runtime_error("Exception in slvQR: dgels exited with info="+toStr(info));
+      throw std::runtime_error("Exception in slvQR: dgels exited with info="+std::to_string(info));
 
     return y;
   }
 
   SquareMatrix<Ref, double> inv(const SquareMatrix<Ref, double> &A) {
 
-    SquareMatrix<Ref, double> B = A.copy();
+    SquareMatrix<Ref, double> B = A;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (A.size() == 0)
       return B;
-#endif
 
-    int *ipiv = new int[A.size()];
+    auto *ipiv = new int[A.size()];
 
     int info = dgetrf(B.blasOrder(), B.rows(), B.cols(), B(), B.ldim(), ipiv);
 
     if(info != 0)
-      throw std::runtime_error("Exception in inv: dgetrf exited with info="+toStr(info));
+      throw std::runtime_error("Exception in inv: dgetrf exited with info="+std::to_string(info));
 
     dgetri(B.blasOrder(), B.size(), B(), B.ldim(), ipiv);
 
@@ -408,12 +352,10 @@ namespace fmatvec {
 
   Matrix<Symmetric, Ref, Ref, double> inv(const Matrix<Symmetric, Ref, Ref, double> &A) {
 
-    Matrix<Symmetric, Ref, Ref, double> B = A.copy();
+    Matrix<Symmetric, Ref, Ref, double> B = A;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (A.size() == 0)
       return B;
-#endif
 
 #ifndef HAVE_LIBMKL_INTEL_LP64
     int info = dpotrf(B.blasOrder(), B.blasUplo(), B.size(), B(), B.ldim());
@@ -422,7 +364,7 @@ namespace fmatvec {
 #endif
 
     if(info != 0)
-      throw std::runtime_error("Exception in inv: dpotrf exited with info="+toStr(info));
+      throw std::runtime_error("Exception in inv: dpotrf exited with info="+std::to_string(info));
 
 #ifndef HAVE_LIBMKL_INTEL_LP64
     dpotri(B.blasOrder(), B.blasUplo(), B.rows(), B(), B.ldim());
@@ -437,10 +379,8 @@ namespace fmatvec {
 
     Matrix<Diagonal, Ref, Ref, double> B(A.size());
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (A.size() == 0)
       return B;
-#endif
 
     for (int i = 0; i < A.size(); i++)
       B(i) = 1.0 / A(i);
@@ -450,12 +390,10 @@ namespace fmatvec {
 
   Matrix<General, Ref, Ref, double> facLU(const Matrix<General, Ref, Ref, double> &A, Vector<Ref, int> &ipiv) {
 
-    Matrix<General, Ref, Ref, double> B = A.copy();
+    Matrix<General, Ref, Ref, double> B = A;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (A.rows() == 0 || A.cols() == 0)
       return B;
-#endif
 
     int is = A.rows() < A.cols() ? A.rows() : A.cols();
     if (ipiv.size() != is) {
@@ -465,19 +403,17 @@ namespace fmatvec {
     int info = dgetrf(B.blasOrder(), B.rows(), B.cols(), B(), B.ldim(), ipiv());
 
     if(info != 0)
-      throw std::runtime_error("Exception in facLU: dgetrf exited with info="+toStr(info));
+      throw std::runtime_error("Exception in facLU: dgetrf exited with info="+std::to_string(info));
 
     return B;
   }
 
   SquareMatrix<Ref, double> facLU(const SquareMatrix<Ref, double> &A, Vector<Ref, int> &ipiv) {
 
-    SquareMatrix<Ref, double> B = A.copy();
+    SquareMatrix<Ref, double> B = A;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (A.size() == 0)
       return B;
-#endif
 
     int is = A.size();
     if (ipiv.size() != is) {
@@ -487,7 +423,7 @@ namespace fmatvec {
     int info = dgetrf(B.blasOrder(), B.rows(), B.cols(), B(), B.ldim(), ipiv());
 
     if(info != 0)
-      throw std::runtime_error("Exception in facLU: dgetrf exited with info="+toStr(info));
+      throw std::runtime_error("Exception in facLU: dgetrf exited with info="+std::to_string(info));
 
     return B;
   }
@@ -496,10 +432,8 @@ namespace fmatvec {
 
     SquareMatrix<Var, double> B = A;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (A.size() == 0)
       return B;
-#endif
 
     int is = A.size();
     if (ipiv.size() != is) {
@@ -509,14 +443,14 @@ namespace fmatvec {
     int info = dgetrf(B.blasOrder(), B.rows(), B.cols(), B(), B.ldim(), ipiv());
 
     if(info != 0)
-      throw std::runtime_error("Exception in facLU: dgetrf exited with info="+toStr(info));
+      throw std::runtime_error("Exception in facLU: dgetrf exited with info="+std::to_string(info));
 
     return B;
   }
 
   int facLU(double *A, int pivot[], int n) {
       int i, j, k;
-      double *p_k, *p_row, *p_col = NULL;
+      double *p_k, *p_row, *p_col = nullptr;
       double max;
 
       //         For each row and column, k = 0, ..., n-1,
@@ -570,12 +504,10 @@ namespace fmatvec {
 
   Matrix<Symmetric, Ref, Ref, double> facLL(const Matrix<Symmetric, Ref, Ref, double> &A) {
 
-    Matrix<Symmetric, Ref, Ref, double> B = A.copy();
+    Matrix<Symmetric, Ref, Ref, double> B = A;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (A.size() == 0)
       return B;
-#endif
 
 #ifndef HAVE_LIBMKL_INTEL_LP64
     int info = dpotrf(B.blasOrder(), B.blasUplo(), B.size(), B(), B.ldim());
@@ -584,27 +516,23 @@ namespace fmatvec {
 #endif
 
     if(info != 0)
-      throw std::runtime_error("Exception in facLL: dpotrf exited with info="+toStr(info));
+      throw std::runtime_error("Exception in facLL: dpotrf exited with info="+std::to_string(info));
 
     return B;
   }
 
   double nrm1(const Vector<Ref, double> &x) {
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (x.size() == 0)
       return 0.0;
-#endif
 
     return dasum(x.size(), x(), x.inc());
   }
 
   double nrmInf(const Vector<Ref, double> &x) {
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (x.size() == 0)
       return 0.0;
-#endif
 
     int id = idamax(x.size(), x(), x.inc());
     return fabs(x(id));
@@ -612,28 +540,22 @@ namespace fmatvec {
 
   double nrm2(const Vector<Ref, double> &x) {
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (x.size() == 0)
       return 0.0;
-#endif
 
     return dnrm2(x.size(), x(), x.inc());
   }
 
   Vector<Ref, double> slvLL(const Matrix<Symmetric, Ref, Ref, double> &A, const Vector<Ref, double> &x) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.size() == x.size());
-#endif
 
-    Vector<Ref, double> y = x.copy();
+    Vector<Ref, double> y = x;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (x.size() == 0)
       return y;
-#endif
 
-    Matrix<Symmetric, Ref, Ref, double> B = A.copy();
+    Matrix<Symmetric, Ref, Ref, double> B = A;
 
 #ifndef HAVE_LIBMKL_INTEL_LP64
     int info = dposv(B.blasOrder(), B.blasUplo(), B.size(), 1, B(), B.ldim(), y(), y.size());
@@ -642,25 +564,21 @@ namespace fmatvec {
 #endif
 
     if(info != 0)
-      throw std::runtime_error("Exception in slvLL: dposv exited with info="+toStr(info));
+      throw std::runtime_error("Exception in slvLL: dposv exited with info="+std::to_string(info));
 
     return y;
   }
 
   Matrix<General, Ref, Ref, double> slvLL(const Matrix<Symmetric, Ref, Ref, double> &A, const Matrix<General, Ref, Ref, double> &X) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.size() == X.rows());
-#endif
 
-    Matrix<General, Ref, Ref, double> Y = X.copy();
+    Matrix<General, Ref, Ref, double> Y = X;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (X.rows() == 0 || X.cols() == 0)
       return Y;
-#endif
 
-    Matrix<Symmetric, Ref, Ref, double> B = A.copy();
+    Matrix<Symmetric, Ref, Ref, double> B = A;
 
 #ifndef HAVE_LIBMKL_INTEL_LP64
     int info = dposv(B.blasOrder(), B.blasUplo(), B.size(), Y.cols(), B(), B.ldim(), Y(), Y.ldim());
@@ -669,25 +587,21 @@ namespace fmatvec {
 #endif
 
     if(info != 0)
-      throw std::runtime_error("Exception in slvLL: dposv exited with info="+toStr(info));
+      throw std::runtime_error("Exception in slvLL: dposv exited with info="+std::to_string(info));
 
     return Y;
   }
 
   Vector<Ref, double> slvLLFac(const Matrix<Symmetric, Ref, Ref, double> &A, const Vector<Ref, double> &x) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.size() == x.size());
-#endif
 
-    Vector<Ref, double> y = x.copy();
+    Vector<Ref, double> y = x;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (x.size() == 0)
       return y;
-#endif
 
-    Matrix<Symmetric, Ref, Ref, double> B = A.copy();
+    Matrix<Symmetric, Ref, Ref, double> B = A;
 
 #ifndef HAVE_LIBMKL_INTEL_LP64
     int info = dpotrs(B.blasOrder(), B.blasUplo(), B.size(), 1, B(), B.ldim(), y(), y.size());
@@ -696,25 +610,21 @@ namespace fmatvec {
 #endif
 
     if(info != 0)
-      throw std::runtime_error("Exception in slvLLFac: dpotrs exited with info="+toStr(info));
+      throw std::runtime_error("Exception in slvLLFac: dpotrs exited with info="+std::to_string(info));
 
     return y;
   }
 
   Matrix<General, Ref, Ref, double> slvLLFac(const Matrix<Symmetric, Ref, Ref, double> &A, const Matrix<General, Ref, Ref, double> &X) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.size() == X.rows());
-#endif
 
-    Matrix<General, Ref, Ref, double> Y = X.copy();
+    Matrix<General, Ref, Ref, double> Y = X;
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (X.rows() == 0 || X.cols() == 0)
       return Y;
-#endif
 
-    Matrix<Symmetric, Ref, Ref, double> B = A.copy();
+    Matrix<Symmetric, Ref, Ref, double> B = A;
 
 #ifndef HAVE_LIBMKL_INTEL_LP64
     int info = dpotrs(B.blasOrder(), B.blasUplo(), B.size(), Y.cols(), B(), B.ldim(), Y(), Y.ldim());
@@ -723,22 +633,22 @@ namespace fmatvec {
 #endif
 
     if(info != 0)
-      throw std::runtime_error("Exception in slvLLFac: dpotrs exited with info="+toStr(info));
+      throw std::runtime_error("Exception in slvLLFac: dpotrs exited with info="+std::to_string(info));
 
     return Y;
   }
 
-  Vector<Ref, std::complex<double> > eigval(const SquareMatrix<Ref, double> &A) {
+  Vector<Ref, std::complex<double>> eigval(const SquareMatrix<Ref, double> &A) {
 
-    double *vl = 0, *vr = 0;
-    double *wr = new double[A.size()];
-    double *wi = new double[A.size()];
+    double *vl = nullptr, *vr = nullptr;
+    auto *wr = new double[A.size()];
+    auto *wi = new double[A.size()];
 
-    SquareMatrix<Ref, double> B = A.copy();
+    SquareMatrix<Ref, double> B = A;
 
     dgeev('N', 'N', A.size(), B(), B.ldim(), wr, wi, vl, B.size(), vr, B.size());
 
-    Vector<Ref, std::complex<double> > w(A.size());
+    Vector<Ref, std::complex<double>> w(A.size());
     for (int i = 0; i < A.size(); i++)
       w(i) = std::complex<double>(wr[i], wi[i]);
 
@@ -748,23 +658,23 @@ namespace fmatvec {
     return w;
   }
 
-  int eigvec(const SquareMatrix<Ref, double> &A, SquareMatrix<Ref, std::complex<double> > &V, Vector<Ref, std::complex<double> > &w) {
+  int eigvec(const SquareMatrix<Ref, double> &A, SquareMatrix<Ref, std::complex<double>> &V, Vector<Ref, std::complex<double>> &w) {
 
-    SquareMatrix<Ref, double> B = A.copy();
+    SquareMatrix<Ref, double> B = A;
     w.resize(A.size(),NONINIT);
     V.resize(A.size(),NONINIT);
     SquareMatrix<Ref, double> Vreal(A.size(),NONINIT);
 
-    double *vl = 0;
-    double *wr = new double[A.size()];
-    double *wi = new double[A.size()];
+    double *vl = nullptr;
+    auto *wr = new double[A.size()];
+    auto *wi = new double[A.size()];
 
     int info = dgeev('N', 'V', A.size(), B(), B.ldim(), wr, wi, vl, B.size(), Vreal(), B.size());
 
     for (int i = 0; i < A.size(); i++) 
       w(i) = std::complex<double>(wr[i], wi[i]);
     for (int i = 0; i < A.size(); i++) {
-      if((i < A.size()-1) and (w(i+1)==conj(w(i)))) {
+      if((i < A.size()-1) && (w(i+1)==conj(w(i)))) {
         for(int j = 0; j < A.size(); j++) {
           V(j,i) = std::complex<double>(Vreal(j,i), Vreal(j,i+1));
           V(j,i+1) = std::complex<double>(Vreal(j,i), -Vreal(j,i+1));
@@ -786,7 +696,7 @@ namespace fmatvec {
   
   int eigvec(const Matrix<Symmetric, Ref, Ref, double> &A, const Matrix<Symmetric, Ref, Ref, double> &B, SquareMatrix<Ref, double> &eigenvectors, Vector<Ref, double> &eigenvalues) {
     const int dim = A.size();
-    double *w = new double[dim];
+    auto *w = new double[dim];
     SquareMatrix<Ref, double> B_(dim);
     eigenvectors.resize(dim);
     eigenvalues.resize(dim);
@@ -803,7 +713,7 @@ namespace fmatvec {
     for (int i = 0; i < dim; i++) {
       Vector<Ref, double> evTmp = eigenvectors.col(i);
       if (nrm2(evTmp) > 0)
-        eigenvectors.col(i) = evTmp / nrm2(evTmp);
+        eigenvectors.set(i, evTmp / nrm2(evTmp));
       eigenvalues(i) = w[i];
     }
 
@@ -845,7 +755,7 @@ namespace fmatvec {
   Vector<Ref, double> eigval(const Matrix<Symmetric, Ref, Ref, double> &A) {
 
     Vector<Ref, double> w(A.size(), NONINIT);
-    Matrix<Symmetric, Ref, Ref, double> B = A.copy();
+    Matrix<Symmetric, Ref, Ref, double> B = A;
 
     dsyev('N', 'L', B.size(), B(), B.ldim(), w());
 
@@ -859,27 +769,25 @@ namespace fmatvec {
     assert(iu >= il);
     assert(iu <= A.size());
 
-    Matrix<Symmetric, Ref, Ref, double> B = A.copy();
+    Matrix<Symmetric, Ref, Ref, double> B = A;
     B.ldim();
     double vl = 0, vu = 0;
     int m;
     Vector<Ref, double> w(A.size());
-    double* z = 0;
+    double* z = nullptr;
     int ldz = 1;
 
     dsyevx('N', 'I', B.blasUplo(), B.size(), B(), B.ldim(), vl, vu, il, iu, abstol, &m, w(), z, ldz);
 
-    return w(0, m - 1);
+    return w(Range<Var,Var>(0, m - 1));
 
   }
 
   double rho(const SquareMatrix<Ref, double> &A) {
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (A.rows() == 0 || A.cols() == 0)
       return 0.0;
-#endif
-    Vector<Ref, std::complex<double> > v = eigval(A);
+    Vector<Ref, std::complex<double>> v = eigval(A);
     double buf = abs(v(0));
     for (int i = 0; i < v.size(); i++) {
       double absi = abs(v(i));
@@ -891,10 +799,8 @@ namespace fmatvec {
 
   double rho(const Matrix<Symmetric, Ref, Ref, double> &A) {
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (A.rows() == 0 || A.cols() == 0)
       return 0.0;
-#endif
     Vector<Ref, double> v = eigval(A);
     double buf = fabs(v(0));
     for (int i = 0; i < v.size(); i++) {
@@ -907,109 +813,89 @@ namespace fmatvec {
 
   double nrmInf(const Matrix<General, Ref, Ref, double> &A) {
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (A.rows() == 0 || A.cols() == 0)
       return 0.0;
-#endif
 
     return dlange('I', A.rows(), A.cols(), A(), A.ldim());
   }
 
   double nrmInf(const Matrix<Symmetric, Ref, Ref, double> &A) {
 
-  #ifndef FMATVEC_NO_VOID_CHECK
       if (A.rows() == 0 || A.cols() == 0)
         return 0.0;
-  #endif
     
       return dlansy('I', 'L', A.cols(), A(), A.ldim());
     }
 
   double nrm1(const Matrix<General, Ref, Ref, double> &A) {
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (A.rows() == 0 || A.cols() == 0)
       return 0.0;
-#endif
 
     return dlange('1', A.rows(), A.cols(), A(), A.ldim());
   }
 
   double nrmFro(const Matrix<General, Ref, Ref, double> &A) {
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (A.rows() == 0 || A.cols() == 0)
       return 0.0;
-#endif
 
     return dlange('F', A.rows(), A.cols(), A(), A.ldim());
   }
 
   double nrm2(const Matrix<General, Ref, Ref, double> &A) {
 
-#ifndef FMATVEC_NO_VOID_CHECK
     if (A.rows() == 0 || A.cols() == 0)
       return 0.0;
-#endif
 
     return sqrt(rho(JTJ(A)));
   }
 
   Matrix<General, Ref, Ref, double> slvLS(const Matrix<General, Ref, Ref, double> &A, const Matrix<General, Ref, Ref, double> &B, double rcond) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.rows() == B.rows());
-#endif
 
-    //#ifndef FMATVEC_NO_VOID_CHECK
     //    if(X.rows() == 0 || X.cols() == 0)
     //      return Y;
-    //#endif
 
-    Matrix<General, Ref, Ref, double> A_ = A.copy();
+    Matrix<General, Ref, Ref, double> A_ = A;
 
     Matrix<General, Ref, Ref, double> B_(A.rows() > A.cols() ? A.rows() : A.cols(), B.cols(), NONINIT);
-    B_(Index(0, B.rows() - 1), Index(0, B.cols() - 1)) = B;
+    B_.set(Range<Var,Var>(0, B.rows() - 1), Range<Var,Var>(0, B.cols() - 1), B);
 
     int info = dgelss(A.rows(), A.cols(), B_.cols(), A_(), A_.ldim(), B_(), B_.ldim(), rcond);
 
     if(info != 0)
-      throw std::runtime_error("Exception in slvLS: dgelss exited with info="+toStr(info));
+      throw std::runtime_error("Exception in slvLS: dgelss exited with info="+std::to_string(info));
 
-    return B_(Index(0, A.cols() - 1), Index(0, B.cols() - 1));
+    return B_(Range<Var,Var>(0, A.cols() - 1), Range<Var,Var>(0, B.cols() - 1));
   }
 
   Vector<Ref, double> slvLS(const Matrix<General, Ref, Ref, double> &A, const Vector<Ref, double> &b, double rcond) {
 
-#ifndef FMATVEC_NO_SIZE_CHECK
     assert(A.rows() == b.size());
-#endif
 
-//#ifndef FMATVEC_NO_VOID_CHECK
     //if(b.size() == 0)
     //return y;
-//#endif
 
-    Matrix<General, Ref, Ref, double> A_ = A.copy();
+    Matrix<General, Ref, Ref, double> A_ = A;
 
     Vector<Ref, double> b_(A.rows() > A.cols() ? A.rows() : A.cols(), NONINIT);
-    b_(0, b.size() - 1) = b;
+    b_.set(Range<Var,Var>(0, b.size() - 1), b);
 
     int info = dgelss(A.rows(), A.cols(), 1, A_(), A_.ldim(), b_(), b_.size(), rcond);
 
     if(info != 0)
-      throw std::runtime_error("Exception in slvLS: dgelss exited with info="+toStr(info));
+      throw std::runtime_error("Exception in slvLS: dgelss exited with info="+std::to_string(info));
 
-    return b_(0, A.cols() - 1);
+    return b_(Range<Var,Var>(0, A.cols() - 1));
   }
 
 //  Matrix<General,Ref,Ref,double> swap(const Matrix<General,Ref,Ref,double> &X, const Vector<Ref,int> &ipiv ) {
 //
-//    //#ifndef FMATVEC_NO_SIZE_CHECK 
 //    //    assert(A.size() == X.rows());
-//    //#endif
 //
-//    Matrix<General,Ref,Ref,double> Y = X.copy();
+//    Matrix<General,Ref,Ref,double> Y = X;
 //
 //    ATL_dlaswp( Y.cols(), Y(), Y.ldim(), 0, Y.rows(), ipiv(), 1 );
 //
@@ -1017,21 +903,17 @@ namespace fmatvec {
 //  }
 //  Matrix<General,Ref,Ref,double> slvLU(CBLAS_SIDE side, CBLAS_UPLO uplo, CBLAS_DIAG unit, const SquareMatrix<Ref,double> &A, const Matrix<General,Ref,Ref,double> &X, const Vector<Ref,int> &ipiv ) {
 //
-//    //#ifndef FMATVEC_NO_SIZE_CHECK 
 //    //    assert(A.size() == X.rows());
-//    //#endif
 //
-//    Matrix<General,Ref,Ref,double> Y = X.copy();
+//    Matrix<General,Ref,Ref,double> Y = X;
 //
-//    //#ifndef FMATVEC_NO_VOID_CHECK
 //    //    if(X.rows() == 0 || X.cols() == 0)
 //    //      return Y;
-//    //#endif
 //
 //
 //    ATL_dlaswp( Y.cols(), Y(), Y.ldim(), 0, Y.rows(), ipiv(), 1 );
 //
-//    SquareMatrix<Ref,double> B = A.copy();
+//    SquareMatrix<Ref,double> B = A;
 //
 //    dtrsm(CblasColMajor,side,uplo,B.blasTrans(),unit,Y.rows(), Y.cols(), 1, A(),A.ldim(), Y(), Y.ldim());
 //

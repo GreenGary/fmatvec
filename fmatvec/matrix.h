@@ -26,22 +26,18 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <stdexcept>
+#include <limits>
 #include <vector>
+#include <boost/scope_exit.hpp>
 #include "range.h"
+#include "types.h"
 
 /*! 
  * \brief Namespace fmatvec.
  *
  * */
 namespace fmatvec {
-
-  class Noinit { };
-  class Init { };
-  class Eye { };
-
-  static Noinit NONINIT = Noinit();
-  static Init INIT = Init();
-  static Eye EYE = Eye();
 
   /*! Enumerate for initialization of matrices
   */
@@ -61,18 +57,19 @@ namespace fmatvec {
 
       //AT* ele;
 
-      void deepCopy(const Matrix<Type,Row,Col,AT> &A);
+      inline Matrix<Type,Row,Col,AT>& copy(const Matrix<Type,Row,Col,AT> &A);
 
       /// @endcond
 
     public:
+      typedef AT value_type;
 //      /*! \brief Standard constructor
 //       * 
 //       * The standard constructor.
 //       * \param m The number of rows
 //       * \param n The number of columns
 //       * */
-//      Matrix(int m, int n) {};
+//      Matrix(int m, int n) {}
 
       /*! \brief Element operator
        *
@@ -83,12 +80,10 @@ namespace fmatvec {
        * \sa operator()(int,int) const
        * */
       AT& operator()(int i, int j) {
-#ifndef FMATVEC_NO_BOUNDS_CHECK
-	assert(i>=0);
-	assert(j>=0);
-	assert(i<rows());
-	assert(j<cols());
-#endif
+	FMATVEC_ASSERT(i>=0, AT);
+	FMATVEC_ASSERT(j>=0, AT);
+	FMATVEC_ASSERT(i<rows(), AT);
+	FMATVEC_ASSERT(j<cols(), AT);
 
 	return e(i,j);
       }
@@ -98,12 +93,10 @@ namespace fmatvec {
        * See operator()(int,int) 
        * */
       const AT& operator()(int i, int j) const {
-#ifndef FMATVEC_NO_BOUNDS_CHECK
-	assert(i>=0);
-	assert(j>=0);
-	assert(i<rows());
-	assert(j<cols());
-#endif
+	FMATVEC_ASSERT(i>=0, AT);
+	FMATVEC_ASSERT(j>=0, AT);
+	FMATVEC_ASSERT(i<rows(), AT);
+	FMATVEC_ASSERT(j<cols(), AT);
 
 	return e(i,j);
       }
@@ -124,60 +117,18 @@ namespace fmatvec {
        * */
       int cols() const;
 
-      /*! \brief Cast to std::vector<std::vector<AT> >.
+      /*! \brief Cast to std::vector<std::vector<AT>>.
        *
-       * \return The std::vector<std::vector<AT> > representation of the matrix
+       * \return The std::vector<std::vector<AT>> representation of the matrix
        * */
-      operator std::vector<std::vector<AT> >();
+      operator std::vector<std::vector<AT>>() const;
   };
 
-
-
-  template <class Type, class Row, class Col, class AT> void Matrix<Type,Row,Col,AT>::deepCopy(const Matrix<Type,Row,Col,AT> &A) { 
+  template <class Type, class Row, class Col, class AT> inline Matrix<Type,Row,Col,AT>& Matrix<Type,Row,Col,AT>::copy(const Matrix<Type,Row,Col,AT> &A) {
     for(int i=0; i<rows(); i++) 
       for(int j=0; j<cols(); j++) 
 	e(i,j) = A.e(i,j);
-  }
-
-  /*! \brief Matrix output 
-   *
-   * This function writes a matrix into a stream.
-   * \param os An output stream.
-   * \param A A matrix of any shape and type.
-   * \return A reference to the output stream.
-   * */
-  template <class Type, class Row, class Col, class AT> std::ostream& operator<<(std::ostream &os, const Matrix<Type,Row,Col,AT> &A) {
-    os << A.rows() << " x " << A.cols() << std::endl;
-    os << "[ ";
-    for (int i=0; i < A.rows(); ++i) {
-      for (int j=0; j < A.cols(); ++j) 
-	os << std::setw(14) << A.e(i,j);
-
-      if (i != A.rows() - 1)
-	os << std::endl  << "  ";
-    }
-    os << " ]";
-    return os;
-  }
-
-  /*! \brief Matrix input
-   *
-   * This function loads a matrix from a stream.
-   * \param is An input stream.
-   * \param A A matrix of any shape and type.
-   * \return A reference to the input stream.
-   * */
-  template <class Type, class Row, class Col, class AT> std::istream& operator>>(std::istream &is, Matrix<Type,Row,Col,AT> &A) {
-    int m, n;
-    char c;
-    is >> m >> c >> n >> c;
-    Matrix<General,Var,Var,AT> B(m,n,NONINIT);
-    for (int i=0; i < B.rows(); ++i) 
-      for (int j=0; j < B.cols(); ++j) 
-	is >> B.e(i,j);
-    is >> c;
-    A = B;
-    return is;
+    return *this;
   }
 
   /*! \brief Matrix dump
@@ -199,8 +150,8 @@ namespace fmatvec {
   }
 
   template <class Type, class Row, class Col, class AT>
-    Matrix<Type,Row,Col,AT>::operator std::vector<std::vector<AT> >() {
-      std::vector<std::vector<AT> > ret(rows());
+    Matrix<Type,Row,Col,AT>::operator std::vector<std::vector<AT>>() const {
+      std::vector<std::vector<AT>> ret(rows());
       for(int r=0; r<rows(); r++) {
 	ret[r].resize(cols());
 	for(int c=0; c<cols(); c++)

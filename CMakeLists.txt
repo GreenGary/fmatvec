@@ -46,7 +46,7 @@ add_compile_options(-Werror)
 ### Search for dependencies ####################################################
 ################################################################################
 # Checking for the blas and lapack dependency
-FIND_PACKAGE(LAPACK REQUIRED) # checks for blas and lapack!
+FIND_PACKAGE(lapack REQUIRED) # checks for blas and lapack!
 
 # Check for the boost dependency
 find_package(Boost REQUIRED) 
@@ -67,8 +67,8 @@ FIND_FILE(HAVE_SYS_TYPES_H "sys/types.h" DOC "Does the sys/types.h exist?")
 FIND_FILE(HAVE_UNISTD_H    "unistd.h"    DOC "Does the unistd.h exist?")
 
 SET(HAVE_LIBATLAS  ${ATLAS_FOUND})
-SET(HAVE_LIBBLAS   ${BLAS_FOUND})
-SET(HAVE_LIBLAPACK ${LAPACK_FOUND})
+SET(HAVE_LIBBLAS   ${lapack_FOUND}) # not set by FIND_PACKAGE(lapack REQUIRED), use LAPACK_blas_LIBRARIES  == blas instead?
+SET(HAVE_LIBLAPACK ${lapack_FOUND})
 check_symbol_exists(sqrt "math.h" HAVE_SQRT)
 check_symbol_exists(pow "math.h" HAVE_POW)
 

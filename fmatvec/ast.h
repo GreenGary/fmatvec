@@ -1,6 +1,14 @@
 #ifndef _FMATVEC_AST_H_
 #define _FMATVEC_AST_H_
 
+#ifdef _MSC_VER
+#ifndef MSVC_DLL_DECLSPEC
+#define MSVC_DLL_DECLSPEC __declspec(dllimport)
+#endif
+#else
+#define MSVC_DLL_DECLSPEC
+#endif
+
 #include <vector>
 #include <map>
 #include <memory>
@@ -92,7 +100,7 @@ class SymbolicExpression : public std::shared_ptr<const AST::Vertex> {
     SymbolicExpression& operator<<=(const SymbolicExpression &src);
 
 #if !defined(NDEBUG) && !defined(SWIG)
-    static unsigned long evalOperationsCount;
+    MSVC_DLL_DECLSPEC static unsigned long evalOperationsCount;
 #endif
 };
 

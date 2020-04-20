@@ -290,6 +290,11 @@ const SymbolicExpression::ConstructSymbol SymbolicExpression::constructSymbol{};
 #endif
 
 // ***** IndependentVariable *****
+#ifdef _MSC_VER
+#ifndef SWIG
+const SymbolicExpression::ConstructSymbol SymbolicExpression::constructSymbol{}; // just used for tag dispatching
+#endif
+#endif
 
 IndependentVariable::IndependentVariable() : SymbolicExpression(constructSymbol) {}
 
@@ -394,7 +399,7 @@ Symbol::Symbol(const boost::uuids::uuid& uuid_) : version(0), uuid(uuid_) {}
 string Symbol::getUUIDStr() const {
 #ifndef NDEBUG // FMATVEC_DEBUG_SYMBOLICEXPRESSION_UUID
   if(getenv("FMATVEC_DEBUG_SYMBOLICEXPRESSION_UUID")) {
-    auto res=mapUUIDInt.insert(make_pair(uuid, mapUUIDInt.size()+1));
+    auto res=mapUUIDInt.insert(make_pair(uuid, static_cast<int>(mapUUIDInt.size())+1));
     return "s"+to_string(res.first->second);
   }
   return to_string(uuid);

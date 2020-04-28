@@ -23,6 +23,8 @@ target_include_directories( fmatvec
    $<BUILD_INTERFACE:${FMATVEC_CONFIG_INCLUDE}>
 )
 
+find_library(LAPACK_LIBRARIES name mkl_rt.lib PATHS $ENV{LIB})
+
 target_link_libraries(fmatvec ${LAPACK_LIBRARIES})
 
 #set_target_properties( fmatvec
@@ -51,18 +53,14 @@ add_custom_command(TARGET fmatvec
                    COMMENT "Filter exports"
 )
 
-if( BLAS_FOUND )
    target_compile_definitions(fmatvec
      PUBLIC
      HAVE_LIBBLAS
    )
-endif()
 
-if( LAPACK_FOUND )
    target_compile_definitions(fmatvec
      PUBLIC
      HAVE_LIBLAPACK
    )
-endif()
 
 add_subdirectory(check)

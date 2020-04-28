@@ -15,8 +15,8 @@ find_package(Boost 1.67 REQUIRED ) # COMPONENTS spirit uuid ... => all header on
 
 # Path with blas and lapack lib/dll needs to be in environment variable LIB
 # find_package(BLAS) called separately for slightly better error message
-find_package(BLAS REQUIRED) 
-find_package(LAPACK REQUIRED ) 
+# find_package(BLAS REQUIRED) 
+# find_package(LAPACK REQUIRED ) 
 
 set(FMATVEC_CONFIG_INCLUDE ${CMAKE_BINARY_DIR}/include)
 file(WRITE ${FMATVEC_CONFIG_INCLUDE}/config.h "/* DUMMY FILE*/")

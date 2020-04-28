@@ -289,13 +289,6 @@ const SymbolicExpression::ConstructSymbol SymbolicExpression::constructSymbol{};
 #endif
 #endif
 
-// ***** IndependentVariable *****
-#ifdef _MSC_VER
-#ifndef SWIG
-const SymbolicExpression::ConstructSymbol SymbolicExpression::constructSymbol{}; // just used for tag dispatching
-#endif
-#endif
-
 IndependentVariable::IndependentVariable() : SymbolicExpression(constructSymbol) {}
 
 IndependentVariable::IndependentVariable(const string &str) : SymbolicExpression(str) {}

@@ -14,8 +14,12 @@ namespace EigvalClr
         {
 
             LinearAlgebraDouble linalg = new LinearAlgebraDouble();
-            
-            Console.WriteLine("Hello");
+            double[] squareMatrix = { 2.0, 30.0, 20.0, 4.0  };
+            double[] eigValVec = linalg.eigval(2, squareMatrix);
+            foreach (double ev in eigValVec)
+            {
+                Console.WriteLine(ev);
+            }
         }
     }
 }

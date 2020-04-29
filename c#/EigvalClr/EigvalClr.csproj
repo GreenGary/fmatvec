@@ -52,5 +52,11 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FMatVecClr\FMatVecClr.vcxproj">
+      <Project>{2e62e6b4-f7ac-44e4-81d7-9d91ad4940a8}</Project>
+      <Name>FMatVecClr</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

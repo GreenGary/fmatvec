@@ -23,3 +23,4 @@ file(WRITE ${FMATVEC_CONFIG_INCLUDE}/config.h "/* DUMMY FILE*/")
 
 add_subdirectory(fmatvec)
 #add_subdirectory(doc)
+add_subdirectory("c#/wrapper")

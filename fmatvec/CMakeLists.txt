@@ -48,3 +48,4 @@ target_compile_definitions(fmatvec
    )
 
 add_subdirectory(check)
+add_subdirectory(example)
